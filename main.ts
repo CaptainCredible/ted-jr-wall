@@ -85,13 +85,16 @@ radio.onReceivedValue(function (name: string, value: number) {
             . # . # .
             # . . . #
             `,0)
+        } else {
+            led.plot(1,4)
+            led.plot(2, 4)
+            led.plot(3, 4)
         } 
     }
 })
 
 function triggerPin(pinToTrig: number){
     if(input.runningTime() < pinTurnOnTime[pinToTrig] + onTime){
-        
         control.inBackground(function() {
             pins.digitalWritePin(outputPins[pinToTrig], 0)
             basic.pause(30);
@@ -111,9 +114,12 @@ basic.forever(function() {
         
         if (pinTurnOnTime[i] + onTime < input.runningTime()) {
             pins.digitalWritePin(outputPins[i], 0)
-            for (let j = 0; j < 5; j++) {
-                led.unplot(j, i)
+            if(!muted){
+                for (let j = 0; j < 5; j++) {
+                    led.unplot(j, i)
+                }
             }
+            
         }
         
     }
