@@ -1,5 +1,5 @@
 let strip = neopixel.create(DigitalPin.P0,12, NeoPixelMode.RGB)
-strip.showRainbow(1, 360);
+//strip.showRainbow(1, 360);
 let pinTurnOnTime = [0,0,0,0];
 let muted = false
 function bytesToArray(bits: number) {
@@ -25,32 +25,37 @@ input.onButtonPressed(Button.A, function () {
 })
 
 //let outputPins = [DigitalPin.P1, DigitalPin.P2, DigitalPin.P8, DigitalPin.P16]
-let outputPins = [101, 102, 108, 116]
+//let outputPins = [101, 102, 108, 116]
+let outputPins = [116, 108, 102, 101 ]
 
 radio.onReceivedValue(function (name: string, value: number) {
     if (!muted) {
         if (name == "Ted") {
-            if(value<4){
-                control.inBackground(function () {
-                    pins.digitalWritePin(outputPins[value],1)
+            for(let p = 0; p < 3; p++){
+            strip.setPixelColor(p, neopixel.colors(neopixel.rgb(value*32, 255, 255-value*32)))
+            }
+            if(value>=4){
+                    pins.digitalWritePin(outputPins[value-4],1)
                     for(let i = 0; i<5; i++){
-                        led.plot(i, value)
+                        led.plot(i, value-4)
                     }
-                    pinTurnOnTime[value] = input.runningTime()
-                })
+                    pinTurnOnTime[value-4] = input.runningTime()
             }
         } else if (name == "TedP") {
             let bitCheckMask = 1
             for (let i = 0; i <= 16 - 1; i++) {
                 if (bitCheckMask & value) {
-                    if (i<4) {
+                    for (let p = 0; p < 3; p++) {
+                        strip.showRainbow(i*45,i*45+30);
+                    }
+                    if (i>=4) {
                         for (let j = 0; j < 5; j++) {
-                            led.plot(j, i)
+                            led.plot(j, i-4)
                         }
-                        pins.digitalWritePin(outputPins[i], 1)
-                        pinTurnOnTime[i] = input.runningTime()
+                        triggerPin(i-4);
                     }
                 }
+                bitCheckMask = bitCheckMask << 1
             }
         }
     }
@@ -84,19 +89,47 @@ radio.onReceivedValue(function (name: string, value: number) {
     }
 })
 
+function triggerPin(pinToTrig: number){
+    if(input.runningTime() < pinTurnOnTime[pinToTrig] + onTime){
+        
+        control.inBackground(function() {
+            pins.digitalWritePin(outputPins[pinToTrig], 0)
+            basic.pause(30);
+            pins.digitalWritePin(outputPins[pinToTrig], 1)
+            pinTurnOnTime[pinToTrig] = input.runningTime()
+        })
+    }
+    pins.digitalWritePin(outputPins[pinToTrig], 1)
+    pinTurnOnTime[pinToTrig] = input.runningTime()
+    
+}
+
+let onTime = 200;
+
 basic.forever(function() {
     for(let i = 0; i < 4; i++){
-        if (pinTurnOnTime[i] + 300 < input.runningTime()) {
+        
+        if (pinTurnOnTime[i] + onTime < input.runningTime()) {
             pins.digitalWritePin(outputPins[i], 0)
             for (let j = 0; j < 5; j++) {
                 led.unplot(j, i)
             }
         }
+        
     }
+    strip.shift()
+    strip.show()
+})
 
-    strip.shift(1);
-    strip.show();
-    
+
+input.onButtonPressed(Button.A, function() {
+    strip.rotate(1)
+    strip.show()  
+})
+
+input.onButtonPressed(Button.B, function () {
+    strip.rotate(-1)
+    strip.show()
 })
 
 function noteOn(note: number, velocity: number, channel: number) {
